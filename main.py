@@ -6,7 +6,26 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
-# Launch Chromium browser and open Temple Run 2
+# Game URL options
+game_urls = {
+    "1": ("Temple Run 2", "https://poki.com/en/g/temple-run-2"),
+    "2": ("Subway Surfers", "https://poki.com/en/g/subway-surfers")
+}
+
+# Game selection menu
+print("🎮 Select a Game to Play:")
+for key, (name, _) in game_urls.items():
+    print(f"{key}. {name}")
+choice = input("Enter your choice (1 or 2): ").strip()
+
+if choice not in game_urls:
+    print("❌ Invalid choice. Defaulting to Temple Run 2.")
+    choice = "1"
+
+game_name, game_url = game_urls[choice]
+print(f"🚀 Launching {game_name}...")
+
+# Launch Chromium browser and open the selected game
 options = webdriver.ChromeOptions()
 options.binary_location = "/usr/bin/chromium-browser"  # Path to Chromium
 options.add_argument("--start-maximized")
@@ -15,7 +34,7 @@ options.add_argument("--disable-notifications")
 # Path to chromedriver
 service = Service("/var/home/ujjain/chromedriver-linux64/chromedriver")
 driver = webdriver.Chrome(service=service, options=options)
-driver.get("https://poki.com/en/g/temple-run-2")
+driver.get(game_url)
 
 # Allow iframe to load
 time.sleep(10)

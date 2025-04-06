@@ -1,55 +1,57 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import pyautogui
+import socket
+import threading
 import time
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 
+# Launch Chromium browser and open Temple Run 2
 options = webdriver.ChromeOptions()
-options.binary_location = "/usr/bin/chromium-browser"
-service = Service("/var/home/ujjain/chromedriver-linux64/chromedriver")
+options.binary_location = "/usr/bin/chromium-browser"  # Path to Chromium
+options.add_argument("--start-maximized")
+options.add_argument("--disable-notifications")
 
+# Path to chromedriver
+service = Service("/var/home/ujjain/chromedriver-linux64/chromedriver")
 driver = webdriver.Chrome(service=service, options=options)
 driver.get("https://poki.com/en/g/temple-run-2")
 
-# Wait for page to load and list iframes
-time.sleep(5)
-iframes = driver.find_elements(By.TAG_NAME, "iframe")
-print(f"Found {len(iframes)} iframes")
+# Allow iframe to load
+time.sleep(10)
+print("🕹️ Move your mouse over the game window and click it to activate input focus.")
 
-canvas = None
-for idx, iframe in enumerate(iframes):
-    try:
-        driver.switch_to.default_content()
-        driver.switch_to.frame(iframe)
-        print(f"Switched to iframe {idx}")
+# Mapping gestures to keyboard keys
+key_map = {
+    "up": "up",
+    "down": "down",
+    "left": "left",
+    "right": "right",
+    "space": "space"  # Jump or similar action
+}
 
-        # Check for canvas inside this iframe
-        canvas = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "canvas"))
-        )
-        print("Canvas found!")
-        break
+# UDP server to receive gestures
+def listen_for_gestures():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("localhost", 5050))
+    print("📡 Listening for gesture commands on port 5050...")
 
-    except Exception as e:
-        print(f"No canvas in iframe {idx}: {e}")
-        continue
+    while True:
+        data, _ = sock.recvfrom(1024)
+        direction = data.decode().strip()
+        print(f"👋 Gesture received: {direction}")
+        if direction in key_map:
+            pyautogui.press(key_map[direction])
+            print(f"⬅️ Pressed key: {key_map[direction]}")
 
-if canvas:
-    try:
-        canvas.click()
-        canvas.send_keys(Keys.SPACE)
-        time.sleep(2)
-        canvas.send_keys(Keys.ARROW_UP)
+# Start gesture listener thread
+gesture_thread = threading.Thread(target=listen_for_gestures, daemon=True)
+gesture_thread.start()
+
+# Keep script alive
+try:
+    while True:
         time.sleep(1)
-        canvas.send_keys(Keys.ARROW_LEFT)
-        time.sleep(1)
-        canvas.send_keys(Keys.ARROW_DOWN)
-        time.sleep(10)
-    except Exception as e:
-        print("Interaction failed:", e)
-else:
-    print("❌ Could not find canvas in any iframe.")
-
-driver.quit()
+except KeyboardInterrupt:
+    print("👋 Exiting...")
+    driver.quit()

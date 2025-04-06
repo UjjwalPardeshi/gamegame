@@ -1,5 +1,7 @@
 import cv2
 import mediapipe as mp
+import pyautogui
+import time
 
 mp_hands = mp.solutions.hands
 mp_draw = mp.solutions.drawing_utils
@@ -11,9 +13,12 @@ hands = mp_hands.Hands(
 )
 
 cap = cv2.VideoCapture(1)
+
 prev_x, prev_y = 0, 0
 direction = ""
-threshold = 0.08  # Movement threshold for stability
+threshold = 0.08  # Movement threshold
+last_action_time = time.time()
+cooldown = 0.4  # seconds between actions
 
 while True:
     ret, frame = cap.read()
@@ -35,14 +40,19 @@ while True:
             dx = x - prev_x
             dy = y - prev_y
 
-            # Determine dominant direction
             if abs(dx) > threshold or abs(dy) > threshold:
                 if abs(dx) > abs(dy):
-                    direction = "Right" if dx > 0 else "Left"
+                    direction = "right" if dx > 0 else "left"
                 else:
-                    direction = "Down" if dy > 0 else "Up"
+                    direction = "down" if dy > 0 else "up"
 
-                prev_x, prev_y = x, y  # Update only when there's valid movement
+                # Send keypress if cooldown passed
+                if time.time() - last_action_time > cooldown:
+                    pyautogui.press(direction)
+                    print(f"Pressed: {direction}")
+                    last_action_time = time.time()
+
+                prev_x, prev_y = x, y  # Update position after action
 
     cv2.putText(frame, f"Direction: {direction}", (10, 50),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
